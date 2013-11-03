@@ -5,3 +5,9 @@ if (Meteor.isClient) {
             };
     })(Elm);
 }
+
+if (Meteor.isServer) {
+    (function (Elm) {
+        Elm.initDataSources();
+    })(Elm);
+}

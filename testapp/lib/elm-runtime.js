@@ -2040,12 +2040,12 @@ Elm.Native.DataSource.make = function(elm) {
     }
 
     function dataSignal(deps) {
-        var init = deps();
-        var signal = Signal.constant(nothingOrJust(init));
+        var signal = Signal.constant(Maybe.Nothing);
 
         // notify Elm runtime of any changes to the data
         Deps.autorun(function () {
-            notify(signal.id, nothingOrJust(deps()));
+            console.log("DEPS", deps);
+            elm.notify(signal.id, nothingOrJust(deps()));
         });
 
         return signal;
@@ -2067,8 +2067,23 @@ Elm.Native.DataSource.make = function(elm) {
     // invalidated in Meteor
     function query(c, q) {
         return dataSignal(function () {
-            return c.find(q).fetch();
+                return A3(Maybe.maybe, null, function (v) {
+                        var ans = v.find(q).fetch();
+                        var elmAns = [];
+                        for (var i=0, l=ans.length; i < l; i++) {
+                            elmAns[i] = ans[i].data;
+                        }
+                        console.log("QUERY:", q, "ANS:", elmAns);
+                        return elmAns;
+                    }, c);
         });
+    }
+
+    function insert(c, obj) {
+        var ans = A3(Maybe.maybe, Maybe.Nothing, function (v) { return v.insert({data: obj}); }
+                , c);
+        console.log(obj, c, ans);
+        return ans;
     }
 
     // How does one guarrantee the type here?!
@@ -2088,7 +2103,8 @@ Elm.Native.DataSource.make = function(elm) {
 
     return elm.Native.DataSource.values = {
         collection: collection,
-        query: query,
+        query: F2(query),
+        insert: F2(insert),
         sessionGet: sessionGet,
         sessionSet: sessionSet
     };
@@ -6447,6 +6463,11 @@ Elm.embed = function(module, container) {
 Elm.worker = function(module) {
     return init(ElmRuntime.Display.NONE, {}, module);
 };
+
+Elm.initDataSources = function () {
+    new Meteor.Collection("points");
+}
+
 
 function init(display, container, module, moduleToReplace) {
   // defining state needed for an instance of the Elm RTS

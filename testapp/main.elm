@@ -1,13 +1,14 @@
 import Mouse
 import Window
-import DataSource (collection, query)
+import Native.DataSource
+import JavaScript.Experimental (toRecord, fromRecord)
+import Native.JavaScript
 
-clickLocs = collection "clickLocs"
-sharedClickLocs = query clickLocs {}
+clickLocs = Native.DataSource.collection "points"
+sharedClickLocs = Native.DataSource.query clickLocs (fromRecord {})
 
-tick = fps 30
-
-clickLocations = foldp (::) [] Mouse.position
+clickLocations = foldp (::) [] (sampleOn Mouse.clicks Mouse.position)
+insertClicks = lift (\pos -> Native.DataSource.insert clickLocs pos) (sampleOn Mouse.clicks Mouse.position)
 
 scene (w,h) locs =
   let drawPentagon (x,y) =
@@ -17,4 +18,7 @@ scene (w,h) locs =
   in  layers [ collage w h (map drawPentagon locs)
              , plainText "Click to stamp a pentagon." ]
 
-main = lift2 scene Window.dimensions (lift (\x -> [x]) Mouse.position)
+points = lift (\x -> case x of
+                Just d -> Native.JavaScript.toList d
+                Nothing -> []) sharedClickLocs
+main = lift2 scene Window.dimensions points
