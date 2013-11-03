@@ -56,7 +56,7 @@ Elm.Main.make = function (elm)
                                                                                                                                                                                                                                                                                                                                                     5,
                                                                                                                                                                                                                                                                                                                                                     20))));}
                                                                                       _E.Case($moduleName,
-                                                                                              "between lines 15 and 17");
+                                                                                              "between lines 20 and 22");
                                                                                     }();
                                                                            };
                                                         return Graphics.Element.layers(_J.toList([A3(Graphics.Collage.collage,
@@ -65,21 +65,15 @@ Elm.Main.make = function (elm)
                                                                                                      A2(List.map,
                                                                                                         drawPentagon,
                                                                                                         locs)),
-                                                                                                  Text.plainText("Click to stamp a pentagon.")]));
+                                                                                                  Text.plainText("Click to stamp a pentagon. Ask others to join!")]));
                                                       }();}
-                                            _E.Case($moduleName,"between lines 14 and 19");
+                                            _E.Case($moduleName,"between lines 19 and 24");
                                           }();
                                  });
-                  var clickLocs = Native.DataSource.collection("points");
-                  var insertClicks = A2(Signal.lift,
-                                        function (pos)
-                                        {
-                                          return A2(Native.DataSource.insert,clickLocs,pos);
-                                        },
-                                        A2(Signal.sampleOn,Mouse.clicks,Mouse.position));
-                  var sharedClickLocs = A2(Native.DataSource.query,
-                                           clickLocs,
-                                           JavaScript.Experimental.fromRecord({_: {}}));
+                  var pointsSource = Native.DataSource.collection("points");
+                  var results = A2(Native.DataSource.query,
+                                   pointsSource,
+                                   JavaScript.Experimental.fromRecord({_: {}}));
                   var points = A2(Signal.lift,
                                   function (x)
                                   {
@@ -92,18 +86,17 @@ Elm.Main.make = function (elm)
                                               case
                                               "Nothing" :
                                                 return _J.toList([]);}
-                                             _E.Case($moduleName,"between lines 21 and 23");
+                                             _E.Case($moduleName,"between lines 14 and 16");
                                            }();
                                   },
-                                  sharedClickLocs);
-                  var main = A3(Signal.lift2,scene,Window.dimensions,points);
-                  var clickLocations = A3(Signal.foldp,
-                                          F2(function (x,y)
-                                             {
-                                               return {ctor: "::", _0: x, _1: y};
-                                             }),
-                                          _J.toList([]),
-                                          A2(Signal.sampleOn,Mouse.clicks,Mouse.position));
-                  elm.Main.values = {_op: _op, clickLocs: clickLocs, sharedClickLocs: sharedClickLocs, clickLocations: clickLocations, insertClicks: insertClicks, scene: scene, points: points, main: main};
+                                  results);
+                  var main = A2(Signal._op["~"],
+                                A2(Signal._op["<~"],scene,Window.dimensions),
+                                points);
+                  var clicks = A2(Signal.sampleOn,Mouse.clicks,Mouse.position);
+                  var pointsSink = A2(Signal._op["<~"],
+                                      Native.DataSource.insert(pointsSource),
+                                      clicks);
+                  elm.Main.values = {_op: _op, pointsSource: pointsSource, clicks: clicks, pointsSink: pointsSink, results: results, points: points, scene: scene, main: main};
                   return elm.Main.values;
                 };

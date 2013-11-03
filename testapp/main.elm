@@ -4,11 +4,16 @@ import Native.DataSource
 import JavaScript.Experimental (toRecord, fromRecord)
 import Native.JavaScript
 
-clickLocs = Native.DataSource.collection "points"
-sharedClickLocs = Native.DataSource.query clickLocs (fromRecord {})
+-- set up data source and sink
+pointsSource = Native.DataSource.collection "points"
+clicks = sampleOn Mouse.clicks Mouse.position
+pointsSink = Native.DataSource.insert pointsSource <~ clicks
 
-clickLocations = foldp (::) [] (sampleOn Mouse.clicks Mouse.position)
-insertClicks = lift (\pos -> Native.DataSource.insert clickLocs pos) (sampleOn Mouse.clicks Mouse.position)
+-- TODO: fromRecord, toList should be done in DataSource module
+results = Native.DataSource.query pointsSource (fromRecord {})
+points = lift (\x -> case x of    -- Nothing means an error occured. Handle gracefully
+                Just d -> Native.JavaScript.toList d
+                Nothing -> []) results
 
 scene (w,h) locs =
   let drawPentagon (x,y) =
@@ -16,9 +21,6 @@ scene (w,h) locs =
                     |> move (toFloat x - toFloat w / 2, toFloat h / 2 - toFloat y)
                     |> rotate (toFloat x)
   in  layers [ collage w h (map drawPentagon locs)
-             , plainText "Click to stamp a pentagon." ]
+             , plainText "Click to stamp a pentagon. Ask others to join!" ]
 
-points = lift (\x -> case x of
-                Just d -> Native.JavaScript.toList d
-                Nothing -> []) sharedClickLocs
-main = lift2 scene Window.dimensions points
+main = scene <~ Window.dimensions ~ points
