@@ -1,5 +1,31 @@
 Learn about the Elm programming language at [elm-lang.org](http://elm-lang.org/).
 
+## About this fork
+
+This fork is geared towards compiling Elm to [Meteor](http://meteor.com) platform. Currently, it has a Database module using which you can create signals of database query results. The final goal of the project is to make full-stack reactive web development feasible with Elm.
+
+### Dependencies
+
+1. You will need to install Meteor first. You can do this by running `curl http://install.meteor.com | sh`. Read [meteor docs](http://dosc.meteor.com) for more details.
+2. See below for Installation instructions for Haskell Platform.
+
+### Usage:
+
+1. Build the compiler with `cabal build`.
+2. The Elm compiler executable will be created at `<repository directory>/dist/build/elm/elm`.
+3. Initialize a meteor project by running `meteor create <directory>`
+3. You will need to make a few changes to data/elm-runtime.js and place it in your meteor project directory. A shell script for making the modifications is at https://github.com/shashi/elm-on-meteor/blob/master/runtimemods.sh.
+4. Create a file called init.js to initialize meteor collections. Example:
+```js
+if (Meteor.isServer) {
+    new Meteor.Collection("collection_name");
+}
+```
+5. You can now compile Meteor apps using the elm compiler (See 1 and 2). See https://github.com/shashi/elm-on-meteor for example apps.
+6. See documentation of the [Database API](https://github.com/shashi/Elm/blob/elm-on-meteor/libraries/Database.elm) to learn about interacting with meteor's database API from Elm.
+7. Use `meteor` to run the app.
+
+What follows is the README file from the upstream Elm repository.
 
 ## Install
 
@@ -14,7 +40,7 @@ Once the Haskell Platform is installed:
     cabal install elm
     cabal install elm-server
 
-## Use
+
 
 To use `elm` and `elm-server` you may need to add a new directory to your PATH.
 
