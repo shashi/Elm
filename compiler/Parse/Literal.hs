@@ -1,14 +1,13 @@
+{-# OPTIONS_GHC -Wall -fno-warn-unused-do-bind #-}
 module Parse.Literal (literal) where
 
-import Control.Applicative ((<$>), (<*>))
-import Control.Monad
+import Control.Applicative ((<$>))
 import Text.Parsec hiding (newline,spaces)
-import Text.Parsec.Indent
-
 import Parse.Helpers
 import SourceSyntax.Literal
 
-literal = num <|> str <|> chr
+literal :: IParser Literal
+literal = num <|> (Str <$> str) <|> (Chr <$> chr)
 
 num :: IParser Literal
 num = fmap toLit (preNum <?> "number")
@@ -21,26 +20,3 @@ num = fmap toLit (preNum <?> "number")
           minus = try $ do string "-"
                            lookAhead digit
                            return "-"
-
-chr :: IParser Literal
-chr = Chr <$> betwixt '\'' '\'' (backslashed <|> satisfy (/='\''))
-      <?> "character"
-
-str :: IParser Literal
-str = choice [ quote >> str <$> manyTill (backslashed <|> anyChar) quote
-             , liftM Str . expecting "string" . betwixt '"' '"' . many $
-               backslashed <|> satisfy (/='"')
-             ]
-    where
-      quote = try (string "\"\"\"")
-      str = Str . dewindows
-
-      -- Remove \r from strings to fix generated JavaScript
-      dewindows [] = []
-      dewindows cs =
-          let (pre, suf) = break (`elem` ['\r','\n']) cs
-          in  pre ++ case suf of 
-                       ('\r':'\n':rest) -> '\n' : dewindows rest
-                       ('\n':rest)      -> '\n' : dewindows rest
-                       ('\r':rest)      -> '\n' : dewindows rest
-                       _                -> []

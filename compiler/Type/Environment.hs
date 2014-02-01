@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -W #-}
 module Type.Environment where
 
 import Control.Applicative ((<$>), (<*>))
@@ -9,11 +10,10 @@ import qualified Control.Monad.State as State
 import qualified Data.Traversable as Traverse
 import qualified Data.Map as Map
 import Data.List (isPrefixOf)
-import qualified Data.UnionFind.IO as UF
 import qualified Text.PrettyPrint as PP
 
 import qualified SourceSyntax.Type as Src
-import SourceSyntax.Module (ADT)
+import SourceSyntax.Module (ADT, Alias)
 import Type.Type
 
 type TypeDict = Map.Map String Type
@@ -26,7 +26,7 @@ data Environment = Environment {
   value :: TypeDict
 }
 
-initialEnvironment :: [ADT] -> [(String, [String], Src.Type)] -> IO Environment
+initialEnvironment :: [ADT] -> [Alias] -> IO Environment
 initialEnvironment datatypes aliases = do
     types <- makeTypes datatypes
     let aliases' = Map.fromList $ map (\(a,b,c) -> (a,(b,c))) aliases
@@ -44,7 +44,7 @@ makeTypes datatypes =
   where
     nameAndKind (name, tvars, _) = (name, length tvars)
 
-    makeCtor (name, kind) = do
+    makeCtor (name, _) = do
       ctor <- VarN <$> namedVar Constant name
       return (name, ctor)
 
@@ -94,7 +94,7 @@ ctorToType env (name, tvars, ctors) =
       
 
     go :: (String, [Src.Type]) -> State.StateT (VarDict, TypeDict) IO ([Type], Type)
-    go (ctor, args) = do
+    go (_, args) = do
       types <- mapM (instantiator env) args
       returnType <- instantiator env (Src.Data name (map Src.Var tvars))
       return (types, returnType)
@@ -162,7 +162,9 @@ instantiator env sourceType = go sourceType
             _ -> error $ "\nCould not find type constructor '" ++
                          name ++ "' while checking types."
 
-        Src.EmptyRecord -> return (TermN EmptyRecord1)
-
-        Src.Record fields ext ->
-          TermN <$> (Record1 <$> Traverse.traverse (mapM go) (Src.fieldMap fields) <*> go ext)
+        Src.Record fields ext -> do
+          fields' <- Traverse.traverse (mapM go) (Src.fieldMap fields)
+          ext' <- case ext of
+                    Nothing -> return $ TermN EmptyRecord1
+                    Just x -> go (Src.Var x)
+          return $ TermN (Record1 fields' ext')

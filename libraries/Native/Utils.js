@@ -25,7 +25,9 @@ Elm.Native.Utils.make = function(elm) {
     function compare(x,y) { return { ctor: ord[cmp(x,y)+1] } }
     function cmp(x,y) {
         var ord;
-        if (typeof x !== 'object') return x === y ? EQ : x < y ? LT : GT;
+        if (typeof x !== 'object' || x instanceof String){
+            return x === y ? EQ : x < y ? LT : GT;
+        }
 
         if (x.ctor === "::" || x.ctor === "[]") {
             while (true) {
@@ -72,8 +74,8 @@ Elm.Native.Utils.make = function(elm) {
         return t;
     }
 
-    function makeText(style, text) {
-        var style = style;
+    function makeText(text) {
+        var style = '';
         var line = '';
         var href = '';
         while (true) {

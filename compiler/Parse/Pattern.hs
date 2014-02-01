@@ -1,28 +1,26 @@
-
+{-# OPTIONS_GHC -W #-}
 module Parse.Pattern (term, expr) where
 
-import Control.Applicative ((<$>),(<*>),pure)
-import Control.Monad
-import Control.Monad.State
+import Control.Applicative ((<$>))
 import Data.Char (isUpper)
 import Data.List (intercalate)
 import Text.Parsec hiding (newline,spaces,State)
-import Text.Parsec.Indent
 
 import Parse.Helpers
 import Parse.Literal
+import SourceSyntax.Literal
+import SourceSyntax.Pattern hiding (tuple, list)
 import qualified SourceSyntax.Pattern as Pattern
-import SourceSyntax.Everything hiding (tuple)
-
 
 basic :: IParser Pattern
 basic = choice
     [ char '_' >> return PAnything
     , do v <- var
          return $ case v of
-                    "True"  -> PLiteral (Boolean True)
-                    "False" -> PLiteral (Boolean False)
-                    c : _   -> if isUpper c then PData v [] else PVar v
+                    "True"          -> PLiteral (Boolean True)
+                    "False"         -> PLiteral (Boolean False)
+                    c:_ | isUpper c -> PData v []
+                    _               -> PVar v
     , PLiteral <$> literal
     ]
 

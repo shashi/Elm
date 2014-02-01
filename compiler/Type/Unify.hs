@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -W #-}
 module Type.Unify (unify) where
 
 import Type.Type
@@ -5,7 +6,6 @@ import qualified Data.UnionFind.IO as UF
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
 import qualified Type.State as TS
-import Control.Arrow (first,second)
 import Control.Monad.State
 import SourceSyntax.Location
 import Type.PrettyPrint
@@ -80,11 +80,11 @@ actuallyUnify span variable1 variable2 = do
       unifyNumber svar name
           | name `elem` ["Int","Float","number"] = flexAndUnify svar
           | otherwise = TS.addError span (Just hint) variable1 variable2
-          where hint = "A number must be an Int or Float"
+          where hint = "A number must be an Int or Float."
 
       comparableError maybe =
           TS.addError span (Just $ Maybe.fromMaybe msg maybe) variable1 variable2
-          where msg = "A comparable must be an Int, Float, Char, String, list, or tuple"
+          where msg = "A comparable must be an Int, Float, Char, String, list, or tuple."
 
       unifyComparable var name
           | name `elem` ["Int","Float","Char","String","comparable"] = flexAndUnify var
@@ -98,7 +98,7 @@ actuallyUnify span variable1 variable2 = do
                             unify' v =<< liftIO (var $ Is Comparable)
                Tuple vs
                    | length vs > 6 ->
-                       comparableError $ Just "Cannot compare a tuple with more than 6 elements"
+                       comparableError $ Just "Cannot compare a tuple with more than 6 elements."
                    | otherwise -> 
                        do flexAndUnify varSuper
                           cmpVars <- liftIO $ forM [1..length vs] $ \_ -> var (Is Comparable)
@@ -113,13 +113,9 @@ actuallyUnify span variable1 variable2 = do
       rigidError variable = TS.addError span (Just hint) variable1 variable2
           where
             var = "'" ++ render (pretty Never variable) ++ "'"
-            hint = concat
-                   [ "This probably relates to a type annotation. A type "
-                   , "annotation may say ", var, " but should be a more "
-                   , "specific type. Also, type variables are not "
-                   , "shared between type annotations, so ", var, " in one "
-                   , "is not the same as " ++ var ++ " in another. "
-                   , "Something like that happened" ]
+            hint = "Cannot unify rigid type variable " ++ var ++
+                   ".\nThe problem probably relates to a type annotation. Note that rigid type\n\
+                   \variables are not shared between a top-level and let-bound type annotations."
 
       superUnify =
           case (flex desc1, flex desc2, name desc1, name desc2) of
@@ -197,8 +193,8 @@ actuallyUnify span variable1 variable2 = do
 
                 unmerged a b = Map.filter (not . null) $ Map.union (Map.intersectionWith eat a b) a
 
-                eat (x:xs) (y:ys) = eat xs ys
-                eat xs ys = xs
+                eat (_:xs) (_:ys) = eat xs ys
+                eat xs _ = xs
 
           _ -> TS.addError span Nothing variable1 variable2
 

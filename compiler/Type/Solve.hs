@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -W #-}
 module Type.Solve (solve) where
 
 import Control.Monad
@@ -5,14 +6,11 @@ import Control.Monad.State
 import qualified Data.UnionFind.IO as UF
 import qualified Data.Map as Map
 import qualified Data.Traversable as Traversable
-import qualified Data.Maybe as Maybe
 import qualified Data.List as List
 import Type.Type
 import Type.Unify
-import qualified Type.ExtraChecks as EC
-import qualified Type.Environment as Env
+import qualified Type.ExtraChecks as Check
 import qualified Type.State as TS
-import qualified Text.PrettyPrint as P
 import SourceSyntax.Location (Located(L), SrcSpan)
 
 
@@ -122,7 +120,7 @@ solve (L span constraint) =
         headers <- Map.unions `fmap` mapM (solveScheme span) schemes
         TS.modifyEnv $ \env -> Map.union headers env
         solve constraint'
-        mapM EC.occursCheck $ Map.toList headers
+        mapM Check.occurs $ Map.toList headers
         TS.modifyEnv (\_ -> oldEnv)
 
     CInstance name term -> do
@@ -174,11 +172,11 @@ allDistinct span vars = do
         desc <- liftIO $ UF.descriptor var
         case structure desc of
           Just _ -> TS.addError span (Just msg) var var
-              where msg = "Cannot generalize something that is not a type variable"
+              where msg = "Cannot generalize something that is not a type variable."
 
           Nothing -> do
             if mark desc == seen
-              then let msg = "Duplicate variable during generalization"
+              then let msg = "Duplicate variable during generalization."
                    in  TS.addError span (Just msg) var var
               else return ()
             liftIO $ UF.setDescriptor var (desc { mark = seen })
@@ -190,5 +188,5 @@ isGeneric span var = do
   desc <- liftIO $ UF.descriptor var
   if rank desc == noRank
     then return ()
-    else let msg = "Unable to generalize a type variable. It is not unranked"
+    else let msg = "Unable to generalize a type variable. It is not unranked."
          in  TS.addError span (Just msg) var var

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -W #-}
 module Parse.Helpers where
 
 import Prelude hiding (until)
@@ -7,13 +8,15 @@ import Control.Monad.State
 import Data.Char (isUpper)
 import qualified Data.Set as Set
 import qualified Data.Map as Map
+import Text.Parsec hiding (newline,spaces,State)
+import Text.Parsec.Indent
+import qualified Text.Parsec.Token as T
+
 import SourceSyntax.Helpers as Help
 import SourceSyntax.Location as Location
 import SourceSyntax.Expression
 import SourceSyntax.PrettyPrint
 import SourceSyntax.Declaration (Assoc)
-import Text.Parsec hiding (newline,spaces,State)
-import Text.Parsec.Indent
 
 reserveds = [ "if", "then", "else"
             , "case", "of"
@@ -21,7 +24,8 @@ reserveds = [ "if", "then", "else"
             , "data", "type"
             , "module", "where"
             , "import", "as", "hiding", "open"
-            , "export", "foreign" ]
+            , "export", "foreign"
+            , "deriving", "port" ]
 
 jsReserveds :: Set.Set String
 jsReserveds = Set.fromList
@@ -35,12 +39,17 @@ jsReserveds = Set.fromList
     , "const", "enum", "export", "extends", "import", "super", "implements"
     , "interface", "let", "package", "private", "protected", "public"
     , "static", "yield"
+    -- reserved by the Elm runtime system
+    , "Elm", "ElmRuntime"
+    , "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9"
+    , "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9"
     ]
 
 expecting = flip (<?>)
 
 type OpTable = Map.Map String (Int, Assoc)
-type IParser a = ParsecT String OpTable (State SourcePos) a
+type SourceM = State SourcePos
+type IParser a = ParsecT String OpTable SourceM a
 
 iParse :: IParser a -> String -> Either ParseError a
 iParse = iParseWithTable "" Map.empty
@@ -48,23 +57,6 @@ iParse = iParseWithTable "" Map.empty
 iParseWithTable :: SourceName -> OpTable -> IParser a -> String -> Either ParseError a
 iParseWithTable sourceName table aParser input =
   runIndent sourceName $ runParserT aParser table sourceName input
-
-readMaybe :: Read a => String -> Maybe a
-readMaybe s =
-    case [ x | (x,t) <- reads s, ("","") <- lex t ] of
-      [x] -> Just x
-      _ -> Nothing
-
-backslashed :: IParser Char
-backslashed = do
-  char '\\'
-  c <- anyChar
-  case readMaybe ['\'','\\',c,'\''] of
-    Just chr -> return chr
-    Nothing ->
-        fail $ "Did not recognize character '\\" ++ [c] ++
-               "'. If the backslash is meant to be a character of its own, " ++
-               "it should be escaped like this: \"\\\\" ++ [c] ++ "\""
 
 var :: IParser String
 var = makeVar (letter <|> char '_' <?> "variable")
@@ -201,7 +193,7 @@ located p = do
   end <- getPosition
   return (start, e, end)
 
-accessible :: IParser (LExpr t v) -> IParser (LExpr t v)
+accessible :: IParser LParseExpr -> IParser LParseExpr
 accessible expr = do
   start <- getPosition
   ce@(L _ e) <- expr
@@ -274,8 +266,9 @@ ignoreUntil :: IParser a -> IParser (Maybe a)
 ignoreUntil end = go
     where
       ignore p = const () <$> p
-      filler = choice [ ignore multiComment
-                      , ignore (markdown (\_ _ -> mzero))
+      filler = choice [ try (ignore chr) <|> ignore str
+                      , ignore multiComment
+                      , ignore (markdown (\_ -> mzero))
                       , ignore anyChar
                       ]
       go = choice [ Just <$> end
@@ -308,13 +301,84 @@ anyUntilPos pos = go
                 True -> return []
                 False -> (:) <$> anyChar <*> go
 
-markdown :: (String -> [a] -> IParser (String, [a])) -> IParser (String, [a])
-markdown interpolation = try (string "[markdown|") >> closeMarkdown "" []
+markdown :: ([a] -> IParser (String, [a])) -> IParser (String, [a])
+markdown interpolation = try (string "[markdown|") >> closeMarkdown (++ "") []
     where
       closeMarkdown md stuff =
           choice [ do try (string "|]")
-                      return (md, stuff)
-                 , uncurry closeMarkdown =<< interpolation md stuff
+                      return (md "", stuff)
+                 , (\(m,s) -> closeMarkdown (md . (m ++)) s) =<< interpolation stuff
                  , do c <- anyChar
-                      closeMarkdown (md ++ [c]) stuff
+                      closeMarkdown (md . ([c]++)) stuff
                  ]
+
+--str :: IParser String
+str = expecting "String" $ do
+        s <- choice [ multiStr, singleStr ]
+        processAs T.stringLiteral . sandwich '\"' $ concat s
+  where
+    rawString quote insides =
+        quote >> manyTill insides quote
+
+    multiStr  = rawString (try (string "\"\"\"")) multilineStringChar
+    singleStr = rawString (char '"') stringChar
+
+    stringChar :: IParser String
+    stringChar = choice [ newlineChar, escaped '\"', (:[]) <$> satisfy (/= '\"') ]
+
+    multilineStringChar :: IParser String
+    multilineStringChar =
+        do noEnd
+           choice [ newlineChar, escaped '\"', expandQuote <$> anyChar ]
+        where
+          noEnd = notFollowedBy (string "\"\"\"")
+          expandQuote c = if c == '\"' then "\\\"" else [c]
+
+    newlineChar :: IParser String
+    newlineChar =
+        choice [ char '\n' >> return "\\n"
+               , char '\r' >> return "\\r" ]
+
+sandwich :: Char -> String -> String
+sandwich delim s = delim : s ++ [delim]
+
+escaped :: Char -> IParser String
+escaped delim = try $ do
+  char '\\'
+  c <- char '\\' <|> char delim
+  return ['\\', c]
+
+chr :: IParser Char
+chr = betwixt '\'' '\'' character <?> "character"
+    where
+      nonQuote = satisfy (/='\'')
+      character = do
+        c <- choice [ escaped '\''
+                    , (:) <$> char '\\' <*> many1 nonQuote
+                    , (:[]) <$> nonQuote ]
+        processAs T.charLiteral $ sandwich '\'' c
+
+processAs :: (T.GenTokenParser String u SourceM -> IParser a) -> String -> IParser a
+processAs processor s = calloutParser s (processor lexer)
+    where
+      calloutParser :: String -> IParser a -> IParser a
+      calloutParser inp p = either (fail . show) return (iParse p inp)
+
+      lexer :: T.GenTokenParser String u SourceM
+      lexer = T.makeTokenParser elmDef
+
+      -- I don't know how many of these are necessary for charLiteral/stringLiteral
+      elmDef :: T.GenLanguageDef String u SourceM
+      elmDef = T.LanguageDef
+               { T.commentStart    = "{-"
+               , T.commentEnd      = "-}"
+               , T.commentLine     = "--"
+               , T.nestedComments  = True
+               , T.identStart      = undefined
+               , T.identLetter     = undefined
+               , T.opStart         = undefined
+               , T.opLetter        = undefined
+               , T.reservedNames   = reserveds
+               , T.reservedOpNames = [":", "->", "<-", "|"]
+               , T.caseSensitive   = True
+               }
