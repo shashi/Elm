@@ -1,5 +1,5 @@
-Elm.Native.Database = {};
-Elm.Native.Database.make = function(elm) {
+Elm.Native.Session = {};
+Elm.Native.Session.make = function(elm) {
 
   // runtime error if metoer is not present
   if (typeof Deps == "undefined") {
@@ -7,14 +7,14 @@ Elm.Native.Database.make = function(elm) {
   }
 
   elm.Native = elm.Native || {};
-  elm.Native.Database = elm.Native.Database || {};
-  if (elm.Native.Database.values) return elm.Native.Database.values;
+  elm.Native.Session = elm.Native.Session || {};
+  if (elm.Native.Session.values) return elm.Native.Session.values;
 
   var JS = Elm.JavaScript.make(elm);
   var Maybe = Elm.Maybe.make(elm);
   var Signal = Elm.Signal.make(elm);
 
-  function dataSignal(deps, _default) {
+  function sessionSignal(deps, _default) {
       // get the current value, make it the
       // default for the signal
       var signal = Signal.constant(_default);
@@ -26,6 +26,7 @@ Elm.Native.Database.make = function(elm) {
 
       return signal;
   }
+
 
   var collections = {};
   function collection(name) {
@@ -54,14 +55,14 @@ Elm.Native.Database.make = function(elm) {
   // function to set up a reactive database query.
   // returns a signal.
   function select(collection, query) {
-    return dataSignal(function () {
-        try {
-            var found = collection.find(query);
-        } catch (e) {
-           return { ctor:'Failure', _0:503, _1:JS.toString(e.toString()) };
-        }
-        return { ctor:'Success', _0: JS.toList(docs(found.fetch())) };
-    }, elm.Database.values.Waiting);
+  // return dataSignal(function () {
+  //     try {
+  //         var found = collection.find(query);
+  //     } catch (e) {
+  //        return { ctor:'Failure', _0:503, _1:JS.toString(e.toString()) };
+  //     }
+  //     return { ctor:'Success', _0: JS.toList(docs(found.fetch())) };
+  // }, elm.Database.values.Waiting);
   }
 
   function mutate(collection, mutation) {
@@ -103,73 +104,9 @@ Elm.Native.Database.make = function(elm) {
             break;
     }
   }
-  function getCookieVal(key) {
-    var parts = document.cookie.split(';');
-    var dict = _.object(_.map(parts, function (a) {
-        return _.map(a.split("="), function (b) {return b.trim();})}));
-    return dict[key];
-  }
-  window.getCookieVal = getCookieVal;
 
-  function sessionId() {
-    var sId = getCookieVal("elm-session-id");
-    if (sId) {
-        return sId;
-    }
-    var sessions = collection("sessions");
-    sId = sessions.insert({});
-    document.cookie = 'elm-session-id=' + sId;
-    return sId;  
-  }
-
-  window.sessionId = sessionId;
-
-  SessionAmplify = _.extend({}, Session, {  
-    keys: _.object(_.map(amplify.store(),   function(value, key) {
-      return [key, JSON.stringify(value)]   
-    })),                                    
-    set: function (key, value) {            
-      Session.set.apply(this, arguments);   
-      amplify.store(key, value);            
-    },
-  });
-  window.SessionAmplify = SessionAmplify;
-
-  ElmSession = {
-    set: function (key, val) {
-        var sessions = collection("sessions");
-        var sesh = sessions.findOne({_id: sessionId()});
-        var update = {};
-        update[key] = val;
-        sessions.upsert({_id: sesh._id}, {$set: update});
-    },
-    get: function (key, defVal) {
-        var sessions = collection("sessions");
-        var sesh = sessions.findOne({_id: sessionId()});
-        var val = sesh[key];
-        return (typeof val == "undefined") ? defVal : val;
-    }
-  };
-
-  window.ElmSession = ElmSession;
-
-  function sessionSet(key, value) {
-    // here we count on Meteor Deps to
-    // notify Elm by Deps.autorun-ning
-    return ElmSession.set(key, value);
-  }
-
-  function sessionGet(key, _default) {
-    return dataSignal(function () {
-        return ElmSession.get(key, _default);
-    }, _default);
-  }
-
-  return elm.Native.Database.values = {
-      select: F2(select),
-      collection: collection,
-      mutate: F2(mutate),
-      sessionSet: F2(sessionSet),
-      sessionGet: F2(sessionGet)
+  return elm.Native.Session.values = {
+      set: F2(set),
+      get: F2(take)
   };
 };

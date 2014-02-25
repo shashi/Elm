@@ -9,15 +9,19 @@ the README file about setting up Elm to compile to "meteor platform".
 
 # Queries
 
-docs Query, select
+@docs Query, select
 
 # Mutations
 
-docs Mutation, mutate
+@docs Mutation, mutate
 
 # Responses
 
 @docs Response
+
+#Session
+
+@docs sessionSet, sessionGet
 -}
 
 import Maybe (Maybe, Just, Nothing, maybe)
@@ -70,3 +74,13 @@ select c q =
 -}
 mutate : Collection a -> Mutation a -> Response c
 mutate = Native.Database.mutate
+
+{-| Set a session value
+-}
+sessionSet : Id -> a -> b
+sessionSet = Native.Database.sessionSet
+
+{-| Get a signal representing a session value
+-}
+sessionGet : Id -> a -> Signal a
+sessionGet = Native.Database.sessionGet
