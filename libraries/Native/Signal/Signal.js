@@ -178,14 +178,27 @@ Elm.Native.Signal.make = function(elm) {
 
       this.recv = function(timestep, changed, parentID) {
         ++count;
+        var t = Date.now();
         if (changed) {
             isChanged = true;
-            if (parentID == s2.id && next === null) { next = s2.value; }
-            if (parentID == s1.id) { next = s1.value; }
+            if (parentID == s2.id) {
+                console.log(count, "signal 2", s2.value, t);
+                if (next === null) {
+                    console.log("= ", s2.value, t);
+                    next = s2.value;
+                } else {
+                    console.log(count, "first signal got there first.");
+                }
+            }
+            if (parentID == s1.id) {
+                next = s1.value;
+                console.log(count, "signal 1", s1.value, t);
+            }
         }
 
         if (count == 2) {
             if (isChanged) { this.value = next; next = null; }
+            console.log("sending value", this.value);
             send(this, timestep, isChanged);
             isChanged = false;
             count = 0;

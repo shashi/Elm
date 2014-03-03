@@ -141,7 +141,7 @@ Elm.Native.Database.make = function(elm) {
         var sesh = sessions.findOne({_id: sessionId()});
         var update = {};
         update[key] = val;
-        sessions.upsert({_id: sesh._id}, {$set: update});
+        sessions.upsert({_id: sesh._id}, update);
     },
     get: function (key, defVal) {
         var sessions = collection("sessions");
