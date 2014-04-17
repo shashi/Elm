@@ -84,6 +84,11 @@ function init(display, container, module, ports, moduleToReplace) {
       return newElm;
   }
 
+  function dispose() {
+    removeListeners(listeners);
+    inputs = [];
+  }
+
   var Module = {};
   var reportAnyErrors = function() {};
   try {
@@ -110,7 +115,11 @@ function init(display, container, module, ports, moduleToReplace) {
   }
 
   reportAnyErrors();
-  return { swap:swap, ports:elm.ports.outgoing };
+  return {
+    swap:swap,
+    ports:elm.ports.outgoing,
+    dispose:dispose
+  };
 };
 
 function checkPorts(elm) {
@@ -203,8 +212,9 @@ function addReceivers(ports) {
 }
 
 function initGraphics(elm, Module) {
-  if (!('main' in Module))
+  if (!('main' in Module)) {
       throw new Error("'main' is missing! What do I display?!");
+  }
 
   var signalGraph = Module.main;
 

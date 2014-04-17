@@ -28,7 +28,6 @@ if (Meteor.isServer) {
 What follows is the README file from the upstream Elm repository.
 
 [![Build Status](https://travis-ci.org/evancz/Elm.png)](https://travis-ci.org/evancz/Elm)
-=======
 [![Build Status](https://travis-ci.org/elm-lang/Elm.png)](https://travis-ci.org/elm-lang/Elm)
 
 ## Install
@@ -77,7 +76,16 @@ for Elm, and has been useful for projects like
 [the website](http://elm-lang.org/) and
 [`elm-get`](https://github.com/evancz/elm-get). Email the list if you
 want to rely on these functions!
-=======
+
+ [installer]: https://github.com/elm-lang/elm-platform/blob/master/README.md#elm-platform 
+
+```bash
+git clone https://github.com/elm-lang/Elm.git
+cd Elm
+cabal configure
+cabal build
+```
+
 This will build the compiler in `/dist/build/elm/elm` but it will not be on
 your PATH.
 
