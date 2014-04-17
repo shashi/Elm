@@ -77,10 +77,10 @@ mutate = Native.Database.mutate
 
 {-| Set a session value
 -}
-sessionSet : Id -> a -> b
+sessionSet : Id -> a -> Response b
 sessionSet = Native.Database.sessionSet
 
 {-| Get a signal representing a session value
 -}
-sessionGet : Id -> a -> Signal a
+sessionGet : Id -> a -> Signal (Response a)
 sessionGet = Native.Database.sessionGet

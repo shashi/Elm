@@ -111,58 +111,50 @@ Elm.Native.Database.make = function(elm) {
   }
   window.getCookieVal = getCookieVal;
 
+  var sessions = collection("sessions");
   function sessionId() {
     var sId = getCookieVal("elm-session-id");
     if (sId) {
         return sId;
     }
-    var sessions = collection("sessions");
     sId = sessions.insert({});
     document.cookie = 'elm-session-id=' + sId;
     return sId;  
   }
 
   window.sessionId = sessionId;
-
-  SessionAmplify = _.extend({}, Session, {  
-    keys: _.object(_.map(amplify.store(),   function(value, key) {
-      return [key, JSON.stringify(value)]   
-    })),                                    
-    set: function (key, value) {            
-      Session.set.apply(this, arguments);   
-      amplify.store(key, value);            
-    },
-  });
-  window.SessionAmplify = SessionAmplify;
-
-  ElmSession = {
-    set: function (key, val) {
-        var sessions = collection("sessions");
-        var sesh = sessions.findOne({_id: sessionId()});
-        var update = {};
-        update[key] = val;
-        sessions.upsert({_id: sesh._id}, update);
-    },
-    get: function (key, defVal) {
-        var sessions = collection("sessions");
-        var sesh = sessions.findOne({_id: sessionId()});
-        var val = sesh[key];
-        return (typeof val == "undefined") ? defVal : val;
-    }
-  };
-
-  window.ElmSession = ElmSession;
+  window.getSession = function () {
+  }
 
   function sessionSet(key, value) {
     // here we count on Meteor Deps to
     // notify Elm by Deps.autorun-ning
-    return ElmSession.set(key, value);
+    try {
+        var update = {};
+        update[key] = value;
+        var res = sessions.update({_id: sessionId()}, update);
+        console.log("set", key, value, res);
+    } catch (e) {
+        console.log("set", key, value, { ctor:'Failure', _0:503, _1:JS.toString(e.toString()) });
+        return { ctor:'Failure', _0:503, _1:JS.toString(e.toString()) };
+    }
+
+    console.log("set", key, value, { ctor:'Success', _0: JS.toString(res) });
+    return { ctor:'Success', _0: JS.toString(res) };
   }
 
   function sessionGet(key, _default) {
-    return dataSignal(function () {
-        return ElmSession.get(key, _default);
-    }, _default);
+    function get() {
+        try {
+            var sesh = sessions.findOne({_id: sessionId()}) || {_id: sessionId()};
+            var found = sesh[key] || _default;
+        } catch (e) {
+           return { ctor:'Failure', _0:503, _1:JS.toString(e.toString()) };
+        }
+        console.log("get", key, _default, { ctor:'Success', _0: found });
+        return { ctor:'Success', _0: found };
+    }
+    return dataSignal(get, get(key, _default));
   }
 
   return elm.Native.Database.values = {
