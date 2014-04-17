@@ -114,7 +114,7 @@ foldr = Native.String.foldr
 {-| Split a string using a given separator.
 
       split "," "cat,dog,cow"        == ["cat","dog","cow"]
-      split "/" "home/evan/Desktop/" == ["home","evan","Desktop"]
+      split "/" "home/evan/Desktop/" == ["home","evan","Desktop", ""]
 
 Use `Regex.split` if you need something more flexible.
 -}
@@ -174,18 +174,18 @@ pad = Native.String.pad
 
 {-| Pad a string on the left until it has a given length.
 
-      pad 5 '.' "1"   == "....1"
-      pad 5 '.' "11"  == "...11"
-      pad 5 '.' "121" == "..121"
+      padLeft 5 '.' "1"   == "....1"
+      padLeft 5 '.' "11"  == "...11"
+      padLeft 5 '.' "121" == "..121"
 -}
 padLeft : Int -> Char -> String -> String
 padLeft = Native.String.padLeft
 
 {-| Pad a string on the right until it has a given length.
 
-      pad 5 '.' "1"   == "1...."
-      pad 5 '.' "11"  == "11..."
-      pad 5 '.' "121" == "121.."
+      padRight 5 '.' "1"   == "1...."
+      padRight 5 '.' "11"  == "11..."
+      padRight 5 '.' "121" == "121.."
 -}
 padRight : Int -> Char -> String -> String
 padRight = Native.String.padRight

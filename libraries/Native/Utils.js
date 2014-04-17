@@ -9,7 +9,12 @@ Elm.Native.Utils.make = function(elm) {
         if (x === y) return true;
         if (typeof x === "object") {
             var c = 0;
-            for (var i in x) { ++c; if (!eq(x[i],y[i])) return false; }
+            for (var i in x) {
+                ++c;
+                if (!eq(x[i],y[i])) {
+                    return false;
+                }
+            }
             return c === Object.keys(y).length;
         }
         if (typeof x === 'function') {
@@ -25,11 +30,15 @@ Elm.Native.Utils.make = function(elm) {
     function compare(x,y) { return { ctor: ord[cmp(x,y)+1] } }
     function cmp(x,y) {
         var ord;
-        if (typeof x !== 'object' || x instanceof String){
+        if (typeof x !== 'object'){
             return x === y ? EQ : x < y ? LT : GT;
         }
-
-        if (x.ctor === "::" || x.ctor === "[]") {
+        else if (x.isChar){
+            var a = x.toString();
+            var b = y.toString();
+            return a === b ? EQ : a < b ? LT : GT;
+        }
+        else if (x.ctor === "::" || x.ctor === "[]") {
             while (true) {
                 if (x.ctor === "[]" && y.ctor === "[]") return EQ;
                 if (x.ctor !== y.ctor) return x.ctor === '[]' ? LT : GT;
@@ -39,8 +48,7 @@ Elm.Native.Utils.make = function(elm) {
                 y = y._1;
             }
         }
-
-        if (x.ctor.slice(0,6) === '_Tuple') {
+        else if (x.ctor.slice(0,6) === '_Tuple') {
             var n = x.ctor.slice(6) - 0;
             var err = 'cannot compare tuples with more than 6 elements.';
             if (n === 0) return EQ;
@@ -53,9 +61,11 @@ Elm.Native.Utils.make = function(elm) {
             if (n >= 7) throw new Error('Comparison error: ' + err); } } } } } }
             return EQ;
         }
-        throw new Error('Comparison error: comparison is only defined on ints, ' +
-                        'floats, times, chars, strings, lists of comparable values, ' +
-                        'and tuples of comparable values.')
+        else {
+            throw new Error('Comparison error: comparison is only defined on ints, ' +
+                            'floats, times, chars, strings, lists of comparable values, ' +
+                            'and tuples of comparable values.');
+        }
     }
 
 
@@ -200,6 +210,10 @@ Elm.Native.Utils.make = function(elm) {
         return Tuple2(posx, posy);
     }
 
+    function isJSArray(a) {
+        return a instanceof Array;
+    }
+
     return elm.Native.Utils.values = {
         eq:eq,
         cmp:cmp,
@@ -219,6 +233,7 @@ Elm.Native.Utils.make = function(elm) {
         mod : F2(mod),
         htmlHeight: F2(htmlHeight),
         getXY: getXY,
+        isJSArray: isJSArray,
         toFloat: function(x) { return +x; }
     };
 };

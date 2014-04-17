@@ -10,7 +10,7 @@ past-dependence.
 
 Some useful functions for working with time (e.g. setting FPS) and combining
 signals and time (e.g.  delaying updates, getting timestamps) can be found in
-the [`Time`](/docs/Signal/Time.elm) library.
+the `Time` library.
 
 # Combine
 @docs constant, lift, lift2, merge, merges, combine
@@ -31,10 +31,7 @@ the [`Time`](/docs/Signal/Time.elm) library.
 
 import Native.Signal
 import List (foldr)
-
 import Basics (fst, snd, not)
-import Native.Error
-import Maybe as M
 
 data Signal a = Signal
 
@@ -120,20 +117,18 @@ initially. -}
 dropIf : (a -> Bool) -> a -> Signal a -> Signal a
 dropIf = Native.Signal.dropIf
 
-{-| Keep events only when the first signal is true. When the first signal
-becomes true, the most recent value of the second signal will be propagated.
-Until the first signal becomes false again, all events will be propagated. Elm
-does not allow undefined signals, so a base case must be provided in case the
-first signal is not true initially. -}
+{-| Keep events only when the first signal is true. Elm does not allow undefined
+signals, so a base case must be provided in case the first signal is not true
+initially.
+-}
 keepWhen : Signal Bool -> a -> Signal a -> Signal a
 keepWhen bs def sig = 
   snd <~ (keepIf fst (False, def) ((,) <~ (sampleOn sig bs) ~ sig))
 
-{-| Drop events when the first signal is true. When the first signal becomes
-false, the most recent value of the second signal will be propagated. Until the
-first signal becomes true again, all events will be propagated. Elm does not
-allow undefined signals, s oa base case must be provided in case the first
-signal is true initially. -}
+{-| Drop events when the first signal is true. Elm does not allow undefined
+signals, so a base case must be provided in case the first signal is true
+initially.
+-}
 dropWhen : Signal Bool -> a -> Signal a -> Signal a
 dropWhen bs = keepWhen (not <~ bs)
 

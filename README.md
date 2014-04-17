@@ -28,25 +28,22 @@ if (Meteor.isServer) {
 What follows is the README file from the upstream Elm repository.
 
 [![Build Status](https://travis-ci.org/evancz/Elm.png)](https://travis-ci.org/evancz/Elm)
+=======
+[![Build Status](https://travis-ci.org/elm-lang/Elm.png)](https://travis-ci.org/elm-lang/Elm)
 
 ## Install
 
-**Arch Linux** &mdash; follow [these directions](https://github.com/evancz/Elm/wiki/Installing-Elm#arch-linux) and then
-jump to the [My First Project](#my-first-project) section.
-<br/>
-**OS X 10.9 or XCode 5** &mdash; follow
-[these directions](http://justtesting.org/post/64947952690/the-glasgow-haskell-compiler-ghc-on-os-x-10-9)
-before continuing with the platform agnostic directions below.
+Follow [these instructions][installer] if you just want to use Elm. To build
+the compiler from source, run the following commands:
 
-**Platform Agnostic** &mdash;
-download the [Haskell Platform 2012.2.0.0 or later](http://hackage.haskell.org/platform/).
-Once the Haskell Platform is installed:
+ [installer]: https://github.com/elm-lang/elm-platform/blob/master/README.md#elm-platform 
 
-    cabal update
-    cabal install elm
-    cabal install elm-server
-
-
+```bash
+git clone https://github.com/elm-lang/Elm.git
+cd Elm
+cabal configure
+cabal build
+```
 
 To use `elm` and `elm-server` you may need to add a new directory to your PATH.
 
@@ -80,6 +77,9 @@ for Elm, and has been useful for projects like
 [the website](http://elm-lang.org/) and
 [`elm-get`](https://github.com/evancz/elm-get). Email the list if you
 want to rely on these functions!
+=======
+This will build the compiler in `/dist/build/elm/elm` but it will not be on
+your PATH.
 
 If you are stuck, email
 [the list](https://groups.google.com/forum/?fromgroups#!forum/elm-discuss)
