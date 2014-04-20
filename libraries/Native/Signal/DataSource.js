@@ -124,8 +124,9 @@ Elm.Native.DataSource.make = function(elm) {
    
    
     return elm.Native.DataSource.values = {
+        collection: collection,
         dataSource: dataSource,
         query: F2(query),
-        mutate: F2(mutate),
+        mutate: F2(mutate)
     };
 }
