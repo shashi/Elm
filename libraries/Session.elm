@@ -1,6 +1,6 @@
 module Session where
 {-|
-    Module for database interactions
+    Module for session variables
 -}
 
 import Native.Session
